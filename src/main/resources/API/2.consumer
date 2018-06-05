@@ -1,0 +1,28 @@
+
+
+
+
+Flink中consumer也做了容错，即通过检查点，定时将consumer消费某topic的offset信息写入快照中，以便恢复时可以重新从记录的offset重新消费kafka的数据，做到exactly once。如果没有设置检查点，当job失败时，Flink只能从zookeeper中获取consumer的offset信息，但是可能不是最新的，而且不能做到exactly once。
+
+Flink Kafka Consumer同样允许在消费kafka数据时，指定时间戳并发射水位线，示例方法如下：
+
+
+val properties = new Properties();
+properties.setProperty("bootstrap.servers", "localhost:9092");
+// only required for Kafka 0.8
+properties.setProperty("zookeeper.connect", "localhost:2181");
+properties.setProperty("group.id", "test");
+
+val myConsumer = new FlinkKafkaConsumer08[String]("topic", new SimpleStringSchema(), properties);
+myConsumer.assignTimestampsAndWatermarks(new CustomWatermarkEmitter());
+stream = env
+    .addSource(myConsumer)
+    .print
+    
+当然，也可以消费之后，对DataStream进行简单的map或filter之后，再进行watermark的的emit和timestamp的extract。
+
+5、总结
+Flink提供了消费kafka数据的high level API，在内部实现时，则是通过我们配置的properties属性获取consumer上一次的offset以及partition信息，并从记录的offset开始消费。消费时，按照（topic，partition_id）对的形式对每个partition顺序消费。
+
+
+

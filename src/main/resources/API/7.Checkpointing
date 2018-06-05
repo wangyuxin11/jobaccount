@@ -1,0 +1,25 @@
+
+Kafka consumer容错性
+一旦启用了Flink的检查点机制（checkpointing），Flink Kafka消费者会定期地对其消费的topic做checkpoint以保存它消费的位移以及其他操作的状态。一旦出现失败，Flink将会恢复streaming程序到最新的checkpoint状态，然后重新从Kafka消费数据，重新读取的位置就是保存在checkpoint中的位移。
+
+checkpoint的间隔决定了程序容错性的程度，它直接确定了在程序崩溃时，程序回溯到的最久状态。
+
+如果要使用启动容错性的Kafka消费者，定期对拓扑进行checkpoint就是非常必要的，实现方法如下面代码所示：
+
+1
+2
+final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+env.enableCheckpointing(5000); // 每5秒做一次checkpoint　　
+需要注意的是，只有槽位（slot）充足Flink才会重启拓扑，因此一旦拓扑因无法连接TaskManager而崩溃，仍然需要有足够的slot才能重启拓扑。如果使用YARN的话，Flink能够自动地重启丢失的YARN容器。
+
+如果没有启用checkpoint，那么Kafka consumer会定期地向Zookeeper提交位移。
+
+Kafka consumer位移提交
+Flink Kafka consumer可以自行设置位移提交的行为。当然，它不依赖于这些已提交的位移来实现容错性。这些提交位移只是供监控使用。
+
+配置位移提交的方法各异，主要依赖于是否启用了checkpointing机制：
+
+未启用checkpointing：Flink Kafka consumer依赖于Kafka提供的自动提交位移功能。设置方法是在Properties对象中配置Kafka参数enable.auto.commit(新版本Kafka consumer)或auto.commit.enable(老版本Kafka consumer)
+启用checkpointing：Flink Kafka consumer会提交位移到checkpoint状态中。这就保证了Kafka中提交的位移与checkpoint状态中的位移是一致的。用户可以调用setCommitOffsetsCheckpoints(boolean)方法来禁用/开启位移提交——默认是true，即开启了位移提交。注意，这种情况下，Flink会忽略上一种情况中提及的Kafka参数
+
+

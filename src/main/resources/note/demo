@@ -1,0 +1,13 @@
+# 利用Flink stream从kafka中写数据到mysql
+https://blog.csdn.net/luoyexuge/article/details/53014703
+
+
+# 当Flink遇到Kafka - FlinkKafkaConsumer使用详解
+http://3g.163.com/money/article/CT5SV3CE0518FO74.html#clickfrom=relativedoc
+
+
+
+# Flink流计算编程--状态与检查点
+https://www.cnblogs.com/fxjwind/p/6957844.html
+
+

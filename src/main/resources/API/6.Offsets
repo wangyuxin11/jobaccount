@@ -1,0 +1,36 @@
+
+
+
+Kafka consumer起始位移配置
+Flink的Kafka consumer允许用户配置Kafka consumer的起始读取位移，如下列代码所示：
+
+_____________________________
+final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+ 
+FlinkKafkaConsumer08<String> myConsumer = new FlinkKafkaConsumer08<>(...);
+myConsumer.setStartFromEarliest();     // start from the earliest record possible
+myConsumer.setStartFromLatest();       // start from the latest record
+myConsumer.setStartFromGroupOffsets(); // the default behaviour
+ 
+DataStream<String> stream = env.addSource(myConsumer);
+...
+所有版本的Flink Kafka consumer都可以使用上面的方法来设定起始位移。
+
+setStartFromGroupOffsets：这是默认情况，即从消费者组提交到Kafka broker上的位移开始读取分区数据（对于老版本而言，位移是提交到Zookeeper上）。如果未找到位移，使用auto.offset.reset属性值来决定位移。该属性默认是LATEST，即从最新的消息位移处开始消费
+setStartFromEarliest() / setStartFromLatest()：设置从最早/最新位移处开始消费。使用这两个方法的话，Kafka中提交的位移就将会被忽略而不会被用作起始位移
+Flink也支持用户自行指定位移，方法如下：
+
+_____________________________
+Map<KafkaTopicPartition, Long> specificStartOffsets = new HashMap<>();
+specificStartOffsets.put(new KafkaTopicPartition("myTopic", 0), 23L);
+specificStartOffsets.put(new KafkaTopicPartition("myTopic", 1), 31L);
+specificStartOffsets.put(new KafkaTopicPartition("myTopic", 2), 43L);
+ 
+myConsumer.setStartFromSpecificOffsets(specificStartOffsets);
+上面的例子中，consumer将从用户指定的位移处开始读取消息。这里的位移记录的是下一条待消费消息的位移，而不是最新的已消费消息的位移。值得注意的是，如果待消费分区的位移不在保存的位移映射中，Flink Kafka connector会使用默认的组位移策略(即setStartFromGroupOffsets())。
+
+另外，当任务自动地从失败中恢复或手动地从savepoint中恢复时，上述这些设置位移的方法是不生效的。在恢复时，每个Kafka分区的起始位移都是由保存在savepoint或checkpoint中的位移来决定的。
+
+
+
+

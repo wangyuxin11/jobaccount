@@ -1,0 +1,23 @@
+Kafka consumer时间戳提取/水位生成
+通常，事件或记录的时间戳信息是封装在消息体中。至于水位，用户可以选择定期地发生水位，也可以基于某些特定的Kafka消息来生成水位——这分别就是AssignerWithPeriodicWatermaks以及AssignerWithPunctuatedWatermarks接口的使用场景。
+
+用户也能够自定义时间戳提取器/水位生成器，具体方法参见这里，然后按照下面的方式传递给consumer：
+
+____________________________________________
+Properties properties = new Properties();
+properties.setProperty("bootstrap.servers", "localhost:9092");
+// only required for Kafka 0.8
+properties.setProperty("zookeeper.connect", "localhost:2181");
+properties.setProperty("group.id", "test");
+ 
+FlinkKafkaConsumer08<String> myConsumer =
+    new FlinkKafkaConsumer08<>("topic", new SimpleStringSchema(), properties);
+myConsumer.assignTimestampsAndWatermarks(new CustomWatermarkEmitter());
+ 
+DataStream<String> stream = env
+    .addSource(myConsumer)
+    .print();
+    
+在内部，Flink会为每个Kafka分区都执行一个对应的assigner实例。一旦指定了这样的assigner，对于每条Kafka中的消息，extractTimestamp(T element, long previousElementTimestamp)方法会被调用来给消息分配时间戳，而getCurrentWatermark()方法（定时生成水位）或checkAndGetNextWatermark(T lastElement, long extractedTimestamp)方法(基于特定条件)会被调用以确定是否发送新的水位值。
+
+

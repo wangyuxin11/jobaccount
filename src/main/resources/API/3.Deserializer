@@ -1,0 +1,15 @@
+DeserializationSchema
+Flink的Kafka consumer需要依靠用户指定的解序列化器来将二进制的数据转换成Java对象。DeserializationSchema接口就是做这件事情的，该接口中的deserialize方法作用于每条Kafka消息上，并把转换的结果发往Flink的下游operator。
+
+通常情况下，用户直接继承AbstractDeserializationSchema来创建新的deserializer，也可以实现DeserializationSchema接口，只不过要自行实现getProducedType方法。
+
+如果要同时解序列化Kafka消息的key和value，则需要实现KeyedDeserializationSchema接口，因为该接口的deserialize方法同时包含了key和value的字节数组。
+
+Flink默认提供了几种deserializer：
+TypeInformationSerializationSchema(以及TypeInformationKeyValueSerializationSchema)：创建一个基于Flink TypeInformation的schema，适用于数据是由Flink读写之时。比起其他序列化方法，这种schema性能更好
+JsonDeserializationSchema(JSONKeyValueDeserializationSchema)：将JSON转换成ObjectNode对象，然后通过ObjectNode.get("fieldName").as(Int/String...)()访问具体的字段。KeyValue
+一旦在解序列化过程中出现错误，Flink提供了两个应对方法——1. 在deserialize方法中抛出异常，使得整个作业失败并重启；2. 返回null告诉Flink Kafka connector跳过这条异常消息。值得注意的是，由于consumer是高度容错的，如果采用第一种方式会让consumer再次尝试deserialize这条有问题的消息。因此倘若deserializer再次失败，程序可能陷入一个死循环并不断进行错误重试。
+
+
+
+

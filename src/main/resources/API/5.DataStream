@@ -1,0 +1,9 @@
+
+Flink中的DataStream程序是实现在数据流上的transformation(如filtering，updating state， defining windows，aggregating)的普通程序。创建数据流的来源多种多样（如消息队列，socket流，文件等）。
+
+程序通过data sink返回结果，如将数据写入文件，或发送到标准输出（如命令行终端）。
+
+Flink程序可以在多种上下文中运行，如独立运行或是嵌入在其他程序中执行。程序的执行可以发生在本地JVM，或者在一个拥有许多设备的集群上。
+
+
+DataStream对象。DataStream对象可以完成流式计算的功能。包括：1、数据落地；2、逻辑计算；3、数据分区；4、过滤；5、窗口；6、join。
